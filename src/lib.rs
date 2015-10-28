@@ -2,9 +2,9 @@
 #![crate_type = "lib"]
 
 pub mod proto;
+pub mod client;
+pub mod scheduler;
+pub mod recordio;
 
+extern crate hyper;
 extern crate protobuf;
-
-#[test]
-fn it_works() {
-}
