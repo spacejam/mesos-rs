@@ -13,12 +13,22 @@ pub struct RecordIOCodec {
     send: Sender<Event>,
 }
 
+impl RecordIOCodec {
+    pub fn new(send: Sender<Event>) -> RecordIOCodec {
+        RecordIOCodec {
+            len_buf: None,
+            buf: None,
+            send: send,
+        }
+    }
+}
+
 impl Write for RecordIOCodec {
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
         for byte in input {
             if self.buf.is_none() {
                 // need to parse length
-                if *byte == 0x20 {
+                if *byte == 0xA {
                     // we've reached the recordio size delimiter
                     if self.len_buf.is_none() {
                         // empty message
@@ -29,6 +39,7 @@ impl Write for RecordIOCodec {
                 } else {
                     // non-terminator, hopefully ascii 0x30-0x39 (numbers)
                     if *byte < 0x30 || *byte > 0x39 {
+                        println!("got bad byte: {:?}", byte);
                         return Err(
                             Error::new(
                                 ErrorKind::InvalidData,
@@ -66,6 +77,7 @@ fn parse(bytes: Vec<u8>) -> io::Result<u64> {
     let mut sum: u64 = 0;
     for byte in bytes {
         if byte < 0x30 || byte > 0x39 {
+            println!("got bad byte: {:?}", byte);
             return Err(
                 Error::new(
                     ErrorKind::InvalidData,
