@@ -4,14 +4,16 @@ use std::sync::{Arc, Mutex};
 use hyper;
 use hyper::Client;
 use hyper::client::response::Response;
-use hyper::header::{Connection, ContentType, Headers, Accept, QualityItem, Quality, qitem};
+use hyper::header::{Accept, Connection, ContentType, Headers, Quality,
+                    QualityItem, qitem};
 use protobuf::{self, Message};
 
-use proto::scheduler::{Call, Call_Type, Call_Subscribe, Call_Accept, Call_Decline, 
-                       Call_Kill, Call_Shutdown, Call_Acknowledge, Call_Reconcile,
-                       Call_Reconcile_Task, Call_Message, Call_Request};
-use proto::mesos::{AgentID, ExecutorID, Filters, FrameworkInfo, FrameworkID, OfferID,
-                   Operation, Request, TaskID};
+use proto::scheduler::{Call, Call_Accept, Call_Acknowledge, Call_Decline,
+                       Call_Kill, Call_Message, Call_Reconcile,
+                       Call_Reconcile_Task, Call_Request, Call_Shutdown,
+                       Call_Subscribe, Call_Type};
+use proto::mesos::{AgentID, ExecutorID, Filters, FrameworkID, FrameworkInfo,
+                   OfferID, Operation, Request, TaskID};
 use util;
 
 #[derive(Clone)]
@@ -21,10 +23,13 @@ pub struct SchedulerClient {
 }
 
 impl SchedulerClient {
-    pub fn subscribe(&self, framework_info: FrameworkInfo, force: Option<bool>) -> hyper::Result<Response> {
+    pub fn subscribe(&self,
+                     framework_info: FrameworkInfo,
+                     force: Option<bool>)
+                     -> hyper::Result<Response> {
         let mut subscribe = Call_Subscribe::new();
         subscribe.set_framework_info(framework_info);
-        
+
         let mut call = Call::new();
         call.set_field_type(Call_Type::SUBSCRIBE);
         call.set_subscribe(subscribe);
@@ -54,12 +59,11 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn accept(
-        &self,
-        offer_ids: Vec<OfferID>,
-        operations: Vec<Operation>,
-        filters: Filters
-    ) -> hyper::Result<Response> {
+    pub fn accept(&self,
+                  offer_ids: Vec<OfferID>,
+                  operations: Vec<Operation>,
+                  filters: Filters)
+                  -> hyper::Result<Response> {
 
         let mut accept = Call_Accept::new();
         accept.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
@@ -80,7 +84,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn decline(&self, offer_ids: Vec<OfferID>, filters: Filters) -> hyper::Result<Response> {
+    pub fn decline(&self,
+                   offer_ids: Vec<OfferID>,
+                   filters: Filters)
+                   -> hyper::Result<Response> {
         let mut decline = Call_Decline::new();
         decline.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
         decline.set_filters(filters);
@@ -113,7 +120,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn kill(&self, task_id: TaskID, agent_id: AgentID) -> hyper::Result<Response> {
+    pub fn kill(&self,
+                task_id: TaskID,
+                agent_id: AgentID)
+                -> hyper::Result<Response> {
         let mut kill = Call_Kill::new();
         kill.set_task_id(task_id);
         kill.set_agent_id(agent_id);
@@ -132,7 +142,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn shutdown(&self, executor_id: ExecutorID, agent_id: AgentID) -> hyper::Result<Response> {
+    pub fn shutdown(&self,
+                    executor_id: ExecutorID,
+                    agent_id: AgentID)
+                    -> hyper::Result<Response> {
         let mut shutdown = Call_Shutdown::new();
         shutdown.set_executor_id(executor_id);
         shutdown.set_agent_id(agent_id);
@@ -151,7 +164,11 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn acknowledge(&self, agent_id: AgentID, task_id: TaskID, uuid: Vec<u8>) -> hyper::Result<Response> {
+    pub fn acknowledge(&self,
+                       agent_id: AgentID,
+                       task_id: TaskID,
+                       uuid: Vec<u8>)
+                       -> hyper::Result<Response> {
         let mut acknowledge = Call_Acknowledge::new();
         acknowledge.set_agent_id(agent_id);
         acknowledge.set_task_id(task_id);
@@ -171,7 +188,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn reconcile_task(&self, task_id: TaskID, agent_id: AgentID) -> hyper::Result<Response> {
+    pub fn reconcile_task(&self,
+                          task_id: TaskID,
+                          agent_id: AgentID)
+                          -> hyper::Result<Response> {
         let mut reconcile = Call_Reconcile_Task::new();
         reconcile.set_task_id(task_id);
         reconcile.set_agent_id(agent_id);
@@ -179,7 +199,9 @@ impl SchedulerClient {
         self.reconcile(vec![reconcile])
     }
 
-    pub fn reconcile(&self, tasks: Vec<Call_Reconcile_Task>) -> hyper::Result<Response> {
+    pub fn reconcile(&self,
+                     tasks: Vec<Call_Reconcile_Task>)
+                     -> hyper::Result<Response> {
         let mut reconcile = Call_Reconcile::new();
         reconcile.set_tasks(protobuf::RepeatedField::from_vec(tasks));
 
@@ -198,7 +220,11 @@ impl SchedulerClient {
     }
 
 
-    pub fn message(&self, agent_id: AgentID, executor_id: ExecutorID, data: Vec<u8>) -> hyper::Result<Response> {
+    pub fn message(&self,
+                   agent_id: AgentID,
+                   executor_id: ExecutorID,
+                   data: Vec<u8>)
+                   -> hyper::Result<Response> {
         let mut message = Call_Message::new();
         message.set_agent_id(agent_id);
         message.set_executor_id(executor_id);
@@ -254,8 +280,8 @@ impl SchedulerClient {
         let client = Client::new();
 
         client.post(&*self.url)
-            .headers(util::protobuf_headers())
-            .body(data)
-            .send()
+              .headers(util::protobuf_headers())
+              .body(data)
+              .send()
     }
 }

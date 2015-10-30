@@ -1,11 +1,11 @@
 use std::io::{self, Error, ErrorKind, Write};
-use std::sync::mpsc::{channel, Sender, Receiver};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::str::FromStr;
 use std::u64;
 
 use protobuf::{self, Message};
 
-use proto::scheduler::{Event};
+use proto::scheduler::Event;
 
 pub struct RecordIOCodec {
     len_buf: Option<Vec<u8>>,
@@ -40,12 +40,10 @@ impl Write for RecordIOCodec {
                     // non-terminator, hopefully ascii 0x30-0x39 (numbers)
                     if *byte < 0x30 || *byte > 0x39 {
                         println!("got bad byte: {:?}", byte);
-                        return Err(
-                            Error::new(
-                                ErrorKind::InvalidData,
-                                "received invalid bytes representing the size of a recordio frame"
-                            )
-                        );
+                        return Err(Error::new(ErrorKind::InvalidData,
+                                              "received invalid bytes \
+                                               representing the size of a \
+                                               recordio frame"));
                     }
                     let mut len_buf = self.len_buf.take().unwrap_or(vec![]);
                     len_buf.push(*byte);
@@ -58,8 +56,8 @@ impl Write for RecordIOCodec {
                 buf.push(*byte);
                 if buf.capacity() - buf.len() == 0 {
                     // we've read an entire message, send it
-                    let event: Event =
-                        protobuf::parse_from_bytes(&*buf).unwrap();
+                    let event: Event = protobuf::parse_from_bytes(&*buf)
+                                           .unwrap();
                     self.send.send(event);
                 } else {
                     self.buf = Some(buf);
@@ -68,7 +66,9 @@ impl Write for RecordIOCodec {
         }
         Ok(input.len())
     }
-    fn flush(&mut self) -> io::Result<()> { Ok(()) }
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 
@@ -78,14 +78,10 @@ fn parse(bytes: Vec<u8>) -> io::Result<u64> {
     for byte in bytes {
         if byte < 0x30 || byte > 0x39 {
             println!("got bad byte: {:?}", byte);
-            return Err(
-                Error::new(
-                    ErrorKind::InvalidData,
-                    "received invalid bytes representing the size of a recordio frame"
-                )
-            );
-        }
-        else {
+            return Err(Error::new(ErrorKind::InvalidData,
+                                  "received invalid bytes representing the \
+                                   size of a recordio frame"));
+        } else {
             sum = (sum * 10) + (byte - 0x30) as u64;
         }
     }

@@ -4,11 +4,17 @@ use mesos::proto::*;
 pub struct TestScheduler;
 
 impl Scheduler for TestScheduler {
-    fn subscribed(&mut self, client: &SchedulerClient, framework_id: &FrameworkID, heartbeat_interval_seconds: Option<f64>) {
+    fn subscribed(&mut self,
+                  client: &SchedulerClient,
+                  framework_id: &FrameworkID,
+                  heartbeat_interval_seconds: Option<f64>) {
         println!("received subscribed");
     }
 
-    fn offers(&mut self, client: &SchedulerClient, offers: Vec<Offer>, inverse_offers: Vec<InverseOffer>) {
+    fn offers(&mut self,
+              client: &SchedulerClient,
+              offers: Vec<Offer>,
+              inverse_offers: Vec<InverseOffer>) {
         println!("received offers");
 
         let mut offer_ids = vec![];
@@ -32,11 +38,19 @@ impl Scheduler for TestScheduler {
         println!("received update");
     }
 
-    fn message(&mut self, client: &SchedulerClient, agent_id: &AgentID, executor_id: &ExecutorID, data: Vec<u8>) {
+    fn message(&mut self,
+               client: &SchedulerClient,
+               agent_id: &AgentID,
+               executor_id: &ExecutorID,
+               data: Vec<u8>) {
         println!("received message");
     }
 
-    fn failure(&mut self, client: &SchedulerClient, agent_id: &AgentID, executor_id: Option<&ExecutorID>, status: Option<i32>) {
+    fn failure(&mut self,
+               client: &SchedulerClient,
+               agent_id: &AgentID,
+               executor_id: Option<&ExecutorID>,
+               status: Option<i32>) {
         println!("received failure");
     }
 
@@ -58,5 +72,10 @@ fn main() {
     let framework_id = None;
 
     let mut scheduler = TestScheduler;
-    run_protobuf_scheduler(url, user, name, framework_timeout, &mut scheduler, framework_id);
+    run_protobuf_scheduler(url,
+                           user,
+                           name,
+                           framework_timeout,
+                           &mut scheduler,
+                           framework_id);
 }
