@@ -8,7 +8,6 @@ Roadmap:
 - [ ] zk master detection and failover
 
 #### Running
-Cargo.toml:
 ```
 [dependencies]
 mesos = "0.2.5"
