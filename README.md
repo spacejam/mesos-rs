@@ -14,8 +14,10 @@ mesos = "0.2.4"
 ```
 
 ```rust
-use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
-use mesos::proto::*;
+extern crate mesos;
+
+use self::mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
+use self::mesos::proto::*;
 
 pub struct TestScheduler;
 
