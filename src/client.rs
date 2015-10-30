@@ -5,7 +5,7 @@ use hyper;
 use hyper::Client;
 use hyper::client::response::Response;
 use hyper::header::{Connection, ContentType, Headers, Accept, QualityItem, Quality, qitem};
-use protobuf::Message;
+use protobuf::{self, Message};
 
 use proto::scheduler::{Call, Call_Type, Call_Subscribe, Call_Accept, Call_Decline, 
                        Call_Kill, Call_Shutdown, Call_Acknowledge, Call_Reconcile,
@@ -28,7 +28,8 @@ impl SchedulerClient {
         call.set_field_type(Call_Type::SUBSCRIBE);
         call.set_subscribe(subscribe);
         {
-            let framework_id = self.framework_id.clone().lock().unwrap();
+            let framework_id_clone = self.framework_id.clone();
+            let framework_id = framework_id_clone.lock().unwrap();
             if framework_id.is_some() {
                 let framework_id_clone = framework_id.clone();
                 call.set_framework_id(framework_id_clone.unwrap());
@@ -71,6 +72,8 @@ impl SchedulerClient {
 
     pub fn decline(&self, offer_ids: Vec<OfferID>, filters: Filters) -> hyper::Result<Response> {
         let mut decline = Call_Decline::new();
+        decline.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
+        decline.set_filters(filters);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::DECLINE);
