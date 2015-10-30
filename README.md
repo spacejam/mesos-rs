@@ -55,7 +55,6 @@ impl Scheduler for TestScheduler {
     }
 }
 
-#[test]
 fn main() {
     let url = "http://localhost:5050/api/v1/scheduler".to_string();
     let user = "root".to_string();
