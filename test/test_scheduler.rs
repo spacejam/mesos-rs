@@ -70,8 +70,8 @@ fn main() {
     let name = "rust http".to_string();
     let framework_timeout = 0f64;
     let framework_id = None;
-
     let mut scheduler = TestScheduler;
+
     run_protobuf_scheduler(url,
                            user,
                            name,
