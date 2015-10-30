@@ -5,12 +5,13 @@ Simple bindings for the Mesos v1 HTTP API.
 Roadmap:
 - [x] scheduler
 - [ ] executor
+- [ ] zk master detection and failover
 
 #### Running
 Cargo.toml:
 ```
 [dependencies]
-mesos = "0.2.4"
+mesos = "0.2.5"
 ```
 
 ```rust
@@ -80,7 +81,7 @@ impl Scheduler for TestScheduler {
 }
 
 fn main() {
-    let url = "http://localhost:5050/api/v1/scheduler".to_string();
+    let url = "http://localhost:5050".to_string();
     let user = "root".to_string();
     let name = "rust http".to_string();
     let framework_timeout = 0f64;

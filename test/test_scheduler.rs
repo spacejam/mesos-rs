@@ -63,7 +63,7 @@ impl Scheduler for TestScheduler {
 
 #[test]
 fn main() {
-    let url = "http://localhost:5050/api/v1/scheduler".to_string();
+    let url = "http://localhost:5050".to_string();
     let user = "root".to_string();
     let name = "rust http".to_string();
     let framework_timeout = 0f64;

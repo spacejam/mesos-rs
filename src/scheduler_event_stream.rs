@@ -25,7 +25,7 @@ pub fn run_protobuf_scheduler(master_url: String,
         });
 
     let client = SchedulerClient {
-        url: master_url,
+        url: master_url + "/api/v1/scheduler",
         framework_id: Arc::new(Mutex::new(None)),
     };
     let client_clone = client.clone();
