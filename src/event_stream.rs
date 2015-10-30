@@ -45,7 +45,14 @@ pub fn run_protobuf_scheduler(
                 let mut framework_id = client.framework_id.lock().unwrap();
                 *framework_id = Some(subscribed.get_framework_id().clone());
 
-                scheduler.subscribed(&client, subscribed)
+                let heartbeat_interval_seconds =
+                    if !subscribed.has_heartbeat_interval_seconds() {
+                        None
+                    } else {
+                        Some(subscribed.get_heartbeat_interval_seconds())
+                    };
+
+                scheduler.subscribed(&client, subscribed.get_framework_id(), heartbeat_interval_seconds)
             },
             Event_Type::OFFERS => {
                 let offers = event.get_offers();
@@ -55,11 +62,31 @@ pub fn run_protobuf_scheduler(
                     offers.get_inverse_offers().to_vec()
                 )
             },
-            Event_Type::RESCIND => scheduler.rescind(&client, event.get_rescind()),
-            Event_Type::UPDATE => scheduler.update(&client, event.get_update()),
-            Event_Type::MESSAGE => scheduler.message(&client, event.get_message()),
-            Event_Type::FAILURE => scheduler.failure(&client, event.get_failure()),
-            Event_Type::ERROR => scheduler.error(&client, event.get_error()),
+            Event_Type::RESCIND =>
+                scheduler.rescind(&client, event.get_rescind().get_offer_id()),
+            Event_Type::UPDATE =>
+                scheduler.update(&client, event.get_update().get_status()),
+            Event_Type::MESSAGE => {
+                let message = event.get_message();
+                scheduler.message(&client, message.get_agent_id(), message.get_executor_id(), message.get_data().to_vec())
+            },
+            Event_Type::FAILURE => {
+                let failure = event.get_failure();
+                let executor_id =
+                    if !failure.has_executor_id() {
+                        None
+                    } else {
+                        Some(failure.get_executor_id())
+                    };
+                let status =
+                    if !failure.has_status() {
+                        None
+                    } else {
+                        Some(failure.get_status())
+                    };
+                scheduler.failure(&client, failure.get_agent_id(), executor_id, status)
+            },
+            Event_Type::ERROR => scheduler.error(&client, event.get_error().get_message().to_string()),
             Event_Type::HEARTBEAT => scheduler.heartbeat(&client),
         }
     }

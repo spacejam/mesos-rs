@@ -8,13 +8,12 @@ Roadmap:
 
 ```rust
 use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
-use mesos::proto::scheduler::*;
-use mesos::proto::mesos::{Filters, Offer, OfferID, InverseOffer};
+use mesos::proto::*;
 
 pub struct TestScheduler;
 
 impl Scheduler for TestScheduler {
-    fn subscribed(&mut self, client: &SchedulerClient, subscribed: &Event_Subscribed) {
+    fn subscribed(&mut self, client: &SchedulerClient, framework_id: &FrameworkID, heartbeat_interval_seconds: Option<f64>) {
         println!("received subscribed");
     }
 
@@ -34,23 +33,23 @@ impl Scheduler for TestScheduler {
         client.decline(offer_ids, filters).unwrap();
     }
 
-    fn rescind(&mut self, client: &SchedulerClient, rescind: &Event_Rescind) {
+    fn rescind(&mut self, client: &SchedulerClient, offer_id: &OfferID) {
         println!("received rescind");
     }
 
-    fn update(&mut self, client: &SchedulerClient, update: &Event_Update) {
+    fn update(&mut self, client: &SchedulerClient, status: &TaskStatus) {
         println!("received update");
     }
 
-    fn message(&mut self, client: &SchedulerClient, message: &Event_Message) {
+    fn message(&mut self, client: &SchedulerClient, agent_id: &AgentID, executor_id: &ExecutorID, data: Vec<u8>) {
         println!("received message");
     }
 
-    fn failure(&mut self, client: &SchedulerClient, failure: &Event_Failure) {
+    fn failure(&mut self, client: &SchedulerClient, agent_id: &AgentID, executor_id: Option<&ExecutorID>, status: Option<i32>) {
         println!("received failure");
     }
 
-    fn error(&mut self, client: &SchedulerClient, error: &Event_Error) {
+    fn error(&mut self, client: &SchedulerClient, message: String) {
         println!("received error");
     }
 
