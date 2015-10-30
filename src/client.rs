@@ -9,8 +9,9 @@ use protobuf::{self, Message};
 
 use proto::scheduler::{Call, Call_Type, Call_Subscribe, Call_Accept, Call_Decline, 
                        Call_Kill, Call_Shutdown, Call_Acknowledge, Call_Reconcile,
-                       Call_Message, Call_Request};
-use proto::mesos::{Filters, FrameworkInfo, FrameworkID, OfferID};
+                       Call_Reconcile_Task, Call_Message, Call_Request};
+use proto::mesos::{AgentID, ExecutorID, Filters, FrameworkInfo, FrameworkID, OfferID,
+                   Operation, Request, TaskID};
 use util;
 
 #[derive(Clone)]
@@ -53,8 +54,17 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn accept(&self) -> hyper::Result<Response> {
+    pub fn accept(
+        &self,
+        offer_ids: Vec<OfferID>,
+        operations: Vec<Operation>,
+        filters: Filters
+    ) -> hyper::Result<Response> {
+
         let mut accept = Call_Accept::new();
+        accept.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
+        accept.set_operations(protobuf::RepeatedField::from_vec(operations));
+        accept.set_filters(filters);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::ACCEPT);
@@ -103,8 +113,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn kill(&self) -> hyper::Result<Response> {
+    pub fn kill(&self, task_id: TaskID, agent_id: AgentID) -> hyper::Result<Response> {
         let mut kill = Call_Kill::new();
+        kill.set_task_id(task_id);
+        kill.set_agent_id(agent_id);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::KILL);
@@ -120,8 +132,10 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn shutdown(&self) -> hyper::Result<Response> {
+    pub fn shutdown(&self, executor_id: ExecutorID, agent_id: AgentID) -> hyper::Result<Response> {
         let mut shutdown = Call_Shutdown::new();
+        shutdown.set_executor_id(executor_id);
+        shutdown.set_agent_id(agent_id);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::SHUTDOWN);
@@ -137,8 +151,11 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn acknowledge(&self) -> hyper::Result<Response> {
+    pub fn acknowledge(&self, agent_id: AgentID, task_id: TaskID, uuid: Vec<u8>) -> hyper::Result<Response> {
         let mut acknowledge = Call_Acknowledge::new();
+        acknowledge.set_agent_id(agent_id);
+        acknowledge.set_task_id(task_id);
+        acknowledge.set_uuid(uuid);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::ACKNOWLEDGE);
@@ -154,8 +171,17 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn reconcile(&self) -> hyper::Result<Response> {
+    pub fn reconcile_task(&self, task_id: TaskID, agent_id: AgentID) -> hyper::Result<Response> {
+        let mut reconcile = Call_Reconcile_Task::new();
+        reconcile.set_task_id(task_id);
+        reconcile.set_agent_id(agent_id);
+
+        self.reconcile(vec![reconcile])
+    }
+
+    pub fn reconcile(&self, tasks: Vec<Call_Reconcile_Task>) -> hyper::Result<Response> {
         let mut reconcile = Call_Reconcile::new();
+        reconcile.set_tasks(protobuf::RepeatedField::from_vec(tasks));
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::RECONCILE);
@@ -171,8 +197,12 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn message(&self) -> hyper::Result<Response> {
+
+    pub fn message(&self, agent_id: AgentID, executor_id: ExecutorID, data: Vec<u8>) -> hyper::Result<Response> {
         let mut message = Call_Message::new();
+        message.set_agent_id(agent_id);
+        message.set_executor_id(executor_id);
+        message.set_data(data);
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::MESSAGE);
@@ -188,8 +218,9 @@ impl SchedulerClient {
         self.post(&*call.write_to_bytes().unwrap())
     }
 
-    pub fn request(&self) -> hyper::Result<Response> {
+    pub fn request(&self, requests: Vec<Request>) -> hyper::Result<Response> {
         let mut request = Call_Request::new();
+        request.set_requests(protobuf::RepeatedField::from_vec(requests));
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::REQUEST);

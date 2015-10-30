@@ -22,7 +22,7 @@ impl Scheduler for TestScheduler {
 
         let filters = Filters::new();
 
-        client.decline(offer_ids, filters);
+        client.decline(offer_ids, filters).unwrap();
     }
 
     fn rescind(&mut self, client: &SchedulerClient, rescind: &Event_Rescind) {
