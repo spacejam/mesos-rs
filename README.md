@@ -2,6 +2,10 @@
 
 Simple bindings for the Mesos v1 HTTP API.
 
+Roadmap:
+- [x] scheduler
+- [ ] executor
+
 ```rust
 use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
 use mesos::proto::scheduler::*;
