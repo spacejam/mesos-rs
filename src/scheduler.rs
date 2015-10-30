@@ -1,4 +1,4 @@
-use client::SchedulerClient;
+use scheduler_client::SchedulerClient;
 use proto::*;
 
 pub trait Scheduler {
@@ -19,7 +19,7 @@ pub trait Scheduler {
                data: Vec<u8>);
     fn failure(&mut self,
                client: &SchedulerClient,
-               agent_id: &AgentID,
+               agent_id: Option<&AgentID>,
                executor_id: Option<&ExecutorID>,
                status: Option<i32>);
     fn error(&mut self, client: &SchedulerClient, message: String);

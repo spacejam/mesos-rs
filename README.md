@@ -6,6 +6,13 @@ Roadmap:
 - [x] scheduler
 - [ ] executor
 
+#### Running
+Cargo.toml:
+```
+[dependencies]
+mesos = "0.2.4"
+```
+
 ```rust
 use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
 use mesos::proto::*;
@@ -34,9 +41,7 @@ impl Scheduler for TestScheduler {
             offer_ids.push(offer.get_id().clone());
         }
 
-        let filters = Filters::new();
-
-        client.decline(offer_ids, filters).unwrap();
+        client.decline(offer_ids, None).unwrap();
     }
 
     fn rescind(&mut self, client: &SchedulerClient, offer_id: &OfferID) {
@@ -57,7 +62,7 @@ impl Scheduler for TestScheduler {
 
     fn failure(&mut self,
                client: &SchedulerClient,
-               agent_id: &AgentID,
+               agent_id: Option<&AgentID>,
                executor_id: Option<&ExecutorID>,
                status: Option<i32>) {
         println!("received failure");
@@ -72,6 +77,7 @@ impl Scheduler for TestScheduler {
     }
 }
 
+#[test]
 fn main() {
     let url = "http://localhost:5050/api/v1/scheduler".to_string();
     let user = "root".to_string();

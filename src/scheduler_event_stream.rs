@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
 
-use client::SchedulerClient;
+use scheduler_client::SchedulerClient;
 use recordio::RecordIOCodec;
 use proto::mesos::FrameworkID;
 use proto::scheduler::*;
@@ -78,6 +78,11 @@ pub fn run_protobuf_scheduler(master_url: String,
             }
             Event_Type::FAILURE => {
                 let failure = event.get_failure();
+                let agent_id = if !failure.has_agent_id() {
+                    None
+                } else {
+                    Some(failure.get_agent_id())
+                };
                 let executor_id = if !failure.has_executor_id() {
                     None
                 } else {
@@ -88,10 +93,7 @@ pub fn run_protobuf_scheduler(master_url: String,
                 } else {
                     Some(failure.get_status())
                 };
-                scheduler.failure(&client,
-                                  failure.get_agent_id(),
-                                  executor_id,
-                                  status)
+                scheduler.failure(&client, agent_id, executor_id, status)
             }
             Event_Type::ERROR =>
                 scheduler.error(&client,

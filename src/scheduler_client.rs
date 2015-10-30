@@ -33,113 +33,76 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::SUBSCRIBE);
         call.set_subscribe(subscribe);
-        {
-            let framework_id_clone = self.framework_id.clone();
-            let framework_id = framework_id_clone.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn teardown(&self) -> hyper::Result<Response> {
         let mut call = Call::new();
         call.set_field_type(Call_Type::TEARDOWN);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn accept(&self,
                   offer_ids: Vec<OfferID>,
                   operations: Vec<Operation>,
-                  filters: Filters)
+                  filters: Option<Filters>)
                   -> hyper::Result<Response> {
 
         let mut accept = Call_Accept::new();
         accept.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
         accept.set_operations(protobuf::RepeatedField::from_vec(operations));
-        accept.set_filters(filters);
+        if filters.is_some() {
+            accept.set_filters(filters.unwrap());
+        }
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::ACCEPT);
         call.set_accept(accept);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn decline(&self,
                    offer_ids: Vec<OfferID>,
-                   filters: Filters)
+                   filters: Option<Filters>)
                    -> hyper::Result<Response> {
         let mut decline = Call_Decline::new();
         decline.set_offer_ids(protobuf::RepeatedField::from_vec(offer_ids));
-        decline.set_filters(filters);
+        if filters.is_some() {
+            decline.set_filters(filters.unwrap());
+        }
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::DECLINE);
         call.set_decline(decline);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn revive(&self) -> hyper::Result<Response> {
         let mut call = Call::new();
         call.set_field_type(Call_Type::REVIVE);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn kill(&self,
                 task_id: TaskID,
-                agent_id: AgentID)
+                agent_id: Option<AgentID>)
                 -> hyper::Result<Response> {
         let mut kill = Call_Kill::new();
         kill.set_task_id(task_id);
-        kill.set_agent_id(agent_id);
+        if agent_id.is_some() {
+            kill.set_agent_id(agent_id.unwrap());
+        }
 
         let mut call = Call::new();
         call.set_field_type(Call_Type::KILL);
         call.set_kill(kill);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn shutdown(&self,
@@ -153,15 +116,8 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::SHUTDOWN);
         call.set_shutdown(shutdown);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn acknowledge(&self,
@@ -177,24 +133,19 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::ACKNOWLEDGE);
         call.set_acknowledge(acknowledge);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn reconcile_task(&self,
                           task_id: TaskID,
-                          agent_id: AgentID)
+                          agent_id: Option<AgentID>)
                           -> hyper::Result<Response> {
         let mut reconcile = Call_Reconcile_Task::new();
         reconcile.set_task_id(task_id);
-        reconcile.set_agent_id(agent_id);
+        if agent_id.is_some() {
+            reconcile.set_agent_id(agent_id.unwrap());
+        }
 
         self.reconcile(vec![reconcile])
     }
@@ -208,15 +159,8 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::RECONCILE);
         call.set_reconcile(reconcile);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
 
@@ -233,15 +177,8 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::MESSAGE);
         call.set_message(message);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn request(&self, requests: Vec<Request>) -> hyper::Result<Response> {
@@ -251,20 +188,18 @@ impl SchedulerClient {
         let mut call = Call::new();
         call.set_field_type(Call_Type::REQUEST);
         call.set_request(request);
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
-        }
 
-        self.post(&*call.write_to_bytes().unwrap())
+        self.post(&mut call)
     }
 
     pub fn suppress(&self) -> hyper::Result<Response> {
         let mut call = Call::new();
         call.set_field_type(Call_Type::SUPPRESS);
+
+        self.post(&mut call)
+    }
+
+    fn post(&self, call: &mut Call) -> hyper::Result<Response> {
         {
             let framework_id = self.framework_id.lock().unwrap();
             if framework_id.is_some() {
@@ -273,11 +208,9 @@ impl SchedulerClient {
             }
         }
 
-        self.post(&*call.write_to_bytes().unwrap())
-    }
-
-    fn post(&self, data: &[u8]) -> hyper::Result<Response> {
         let client = Client::new();
+
+        let data = &*call.write_to_bytes().unwrap();
 
         client.post(&*self.url)
               .headers(util::protobuf_headers())
