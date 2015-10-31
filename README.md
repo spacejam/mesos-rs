@@ -19,7 +19,7 @@ extern crate mesos;
 use self::mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
 use self::mesos::proto::*;
 
-pub struct TestScheduler;
+struct TestScheduler;
 
 impl Scheduler for TestScheduler {
     fn subscribed(&mut self,

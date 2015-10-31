@@ -3,9 +3,11 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
 
+use itertools::Itertools;
+
 use scheduler_client::SchedulerClient;
 use recordio::RecordIOCodec;
-use proto::mesos::FrameworkID;
+use proto::mesos::{FrameworkID, Offer};
 use proto::scheduler::*;
 use Scheduler;
 use util;
@@ -61,9 +63,22 @@ pub fn run_protobuf_scheduler(master_url: String,
             }
             Event_Type::OFFERS => {
                 let offers = event.get_offers();
-                scheduler.offers(&client,
-                                 offers.get_offers().to_vec(),
-                                 offers.get_inverse_offers().to_vec())
+
+                // Split offers per-agent to save users the time of
+                // doing so.
+                for (_, offers) in offers.get_offers()
+                                         .iter()
+                                         .group_by(|o| o.get_agent_id()) {
+                    scheduler.offers(&client, offers.to_vec());
+                }
+                for (_, inverse_offers) in offers.get_inverse_offers()
+                                                 .iter()
+                                                 .group_by(|o| {
+                                                     o.get_agent_id()
+                                                 }) {
+                    scheduler.inverse_offers(&client, inverse_offers.to_vec());
+                }
+
             }
             Event_Type::RESCIND =>
                 scheduler.rescind(&client, event.get_rescind().get_offer_id()),

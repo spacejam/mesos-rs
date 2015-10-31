@@ -20,3 +20,4 @@ pub use scheduler_event_stream::run_protobuf_scheduler;
 
 extern crate hyper;
 extern crate protobuf;
+extern crate itertools;

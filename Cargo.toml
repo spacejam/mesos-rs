@@ -15,3 +15,4 @@ path = "test/test.rs"
 [dependencies]
 protobuf = "1.0.4"
 hyper = "0.6.15"
+itertools = "0.4.3"

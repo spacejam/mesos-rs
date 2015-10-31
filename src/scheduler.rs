@@ -6,10 +6,10 @@ pub trait Scheduler {
                   client: &SchedulerClient,
                   framework_id: &FrameworkID,
                   heartbeat_interval_seconds: Option<f64>);
-    fn offers(&mut self,
-              client: &SchedulerClient,
-              offers: Vec<Offer>,
-              inverse_offers: Vec<InverseOffer>);
+    fn offers(&mut self, client: &SchedulerClient, offers: Vec<&Offer>);
+    fn inverse_offers(&mut self,
+                      client: &SchedulerClient,
+                      inverse_offers: Vec<&InverseOffer>);
     fn rescind(&mut self, client: &SchedulerClient, offer_id: &OfferID);
     fn update(&mut self, client: &SchedulerClient, status: &TaskStatus);
     fn message(&mut self,
