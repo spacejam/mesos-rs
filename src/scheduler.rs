@@ -25,4 +25,5 @@ pub trait Scheduler {
     fn error(&mut self, client: &SchedulerClient, message: String);
     fn heartbeat(&mut self, client: &SchedulerClient) {
     }
+    fn disconnected(&mut self);
 }

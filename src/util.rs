@@ -48,8 +48,12 @@ pub fn task_info(name: String,
     task_info
 }
 
-pub fn launch(task_infos: Vec<TaskInfo>) -> Operation_Launch {
+pub fn launch_operation(task_infos: Vec<TaskInfo>) -> Operation {
     let mut launch = Operation_Launch::new();
     launch.set_task_infos(protobuf::RepeatedField::from_vec(task_infos));
-    launch
+
+    let mut operation = Operation::new();
+    operation.set_field_type(Operation_Type::LAUNCH);
+    operation.set_launch(launch);
+    operation
 }

@@ -1,6 +1,6 @@
 use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
 use mesos::proto::*;
-use mesos::util::{task_info, launch};
+use mesos::util::{task_info};
 
 struct TestScheduler {
     max_id: u64,
@@ -21,9 +21,7 @@ impl Scheduler for TestScheduler {
         println!("received subscribed");
     }
 
-    fn offers(&mut self,
-              client: &SchedulerClient,
-              offers: Vec<&Offer>) {
+    fn offers(&mut self, client: &SchedulerClient, offers: Vec<&Offer>) {
         println!("received offers");
 
         let mut tasks = vec![];
@@ -59,29 +57,30 @@ impl Scheduler for TestScheduler {
 
             let resources = vec![mem, cpus];
 
-            let task_info = task_info(name, &task_id, offer.get_agent_id(), &command, resources);
+            let task_info = task_info(name,
+                                      &task_id,
+                                      offer.get_agent_id(),
+                                      &command,
+                                      resources);
 
             tasks.push(task_info);
         }
 
-        let mut operation = Operation::new();
-        operation.set_field_type(Operation_Type::LAUNCH);
-        operation.set_launch(launch(tasks));
+        client.reconcile(vec![]);
 
-        client.accept(offer_ids, vec![operation], None);
+        client.launch(offer_ids, tasks, None);
     }
 
     fn inverse_offers(&mut self,
-              client: &SchedulerClient,
-              inverse_offers: Vec<&InverseOffer>) {
+                      client: &SchedulerClient,
+                      inverse_offers: Vec<&InverseOffer>) {
         println!("received inverse offers");
 
-        let mut inverse_offer_ids = vec![];
-        for offer in inverse_offers {
-            inverse_offer_ids.push(offer.get_id().clone());
-        }
-
-        client.decline(inverse_offer_ids, None).unwrap();
+        client.decline(inverse_offers.iter()
+                                     .map(|io| io.get_id().clone())
+                                     .collect(),
+                       None)
+              .unwrap();
     }
 
     fn rescind(&mut self, client: &SchedulerClient, offer_id: &OfferID) {
@@ -89,7 +88,9 @@ impl Scheduler for TestScheduler {
     }
 
     fn update(&mut self, client: &SchedulerClient, status: &TaskStatus) {
-        println!("received update");
+        println!("received update {:?} from {}",
+                 status.get_state(),
+                 status.get_task_id().get_value());
     }
 
     fn message(&mut self,
@@ -115,6 +116,10 @@ impl Scheduler for TestScheduler {
     fn heartbeat(&mut self, client: &SchedulerClient) {
         println!("received heartbeat");
     }
+
+    fn disconnected(&mut self) {
+        println!("disconnected from scheduler");
+    }
 }
 
 #[test]
@@ -124,9 +129,7 @@ fn main() {
     let name = "rust http".to_string();
     let framework_timeout = 0f64;
     let framework_id = None;
-    let mut scheduler = TestScheduler {
-        max_id: 0,
-    };
+    let mut scheduler = TestScheduler { max_id: 0 };
 
     run_protobuf_scheduler(url,
                            user,

@@ -2,6 +2,7 @@ use std::io::{self, Error, ErrorKind, Write};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::str::FromStr;
 use std::u64;
+use std::str;
 
 use protobuf::{self, Message};
 
@@ -10,11 +11,11 @@ use proto::scheduler::Event;
 pub struct RecordIOCodec {
     len_buf: Option<Vec<u8>>,
     buf: Option<Vec<u8>>,
-    send: Sender<Event>,
+    send: Sender<io::Result<Event>>,
 }
 
 impl RecordIOCodec {
-    pub fn new(send: Sender<Event>) -> RecordIOCodec {
+    pub fn new(send: Sender<io::Result<Event>>) -> RecordIOCodec {
         RecordIOCodec {
             len_buf: None,
             buf: None,
@@ -27,7 +28,7 @@ impl Write for RecordIOCodec {
     fn write(&mut self, input: &[u8]) -> io::Result<usize> {
         for byte in input {
             if self.buf.is_none() {
-                // need to parse length
+                // need to parse length before feeding into a buffer
                 if *byte == 0xA {
                     // we've reached the recordio size delimiter
                     if self.len_buf.is_none() {
@@ -39,11 +40,15 @@ impl Write for RecordIOCodec {
                 } else {
                     // non-terminator, hopefully ascii 0x30-0x39 (numbers)
                     if *byte < 0x30 || *byte > 0x39 {
-                        println!("got bad byte: {:?}", byte);
                         return Err(Error::new(ErrorKind::InvalidData,
-                                              "received invalid bytes \
-                                               representing the size of a \
-                                               recordio frame"));
+                                              format!("received invalid \
+                                                       bytes representing \
+                                                       the size of a \
+                                                       recordio frame. \
+                                                       Message from \
+                                                       server: {}",
+                                                      str::from_utf8(input)
+                                                          .unwrap())));
                     }
                     let mut len_buf = self.len_buf.take().unwrap_or(vec![]);
                     len_buf.push(*byte);
@@ -58,7 +63,7 @@ impl Write for RecordIOCodec {
                     // we've read an entire message, send it
                     let event: Event = protobuf::parse_from_bytes(&*buf)
                                            .unwrap();
-                    self.send.send(event);
+                    self.send.send(Ok(event));
                 } else {
                     self.buf = Some(buf);
                 }

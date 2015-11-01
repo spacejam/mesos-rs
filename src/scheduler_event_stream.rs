@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Error, ErrorKind, Write};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::channel;
 use std::thread;
@@ -11,6 +11,20 @@ use proto::mesos::{FrameworkID, Offer};
 use proto::scheduler::*;
 use Scheduler;
 use util;
+
+enum State {
+    Connected,
+    Disconnected,
+}
+
+impl State {
+    fn is_connected(&self) -> bool {
+        match *self {
+            State::Connected => true,
+            _ => false,
+        }
+    }
+}
 
 pub fn run_protobuf_scheduler(master_url: String,
                               user: String,
@@ -35,15 +49,42 @@ pub fn run_protobuf_scheduler(master_url: String,
     let (tx, rx) = channel();
 
     thread::spawn(move || {
-        let mut codec = RecordIOCodec::new(tx);
-        let framework_info = util::framework_info(user,
-                                                  name,
-                                                  framework_timeout);
-        let mut res = client_clone.subscribe(framework_info, None).unwrap();
-        io::copy(&mut res, &mut codec).unwrap();
+        loop {
+            let mut codec = RecordIOCodec::new(tx.clone());
+            let framework_info =
+                util::framework_info(user.clone(),
+                                     name.clone(),
+                                     framework_timeout.clone());
+            match client_clone.subscribe(framework_info, None) {
+                Err(e) => {
+                    tx.clone()
+                      .send(Err(Error::new(ErrorKind::ConnectionReset,
+                                           "server disconnected")));
+                }
+                Ok(mut res) => match io::copy(&mut res, &mut codec) {
+                    Err(e) => {
+                        tx.clone().send(Err(e));
+                    }
+                    Ok(_) => (),
+                },
+            }
+            // TODO(tyler) exponential truncated backoff
+        }
     });
 
-    for event in rx {
+    let mut state = State::Connected;
+    for e in rx {
+        if e.is_err() {
+            if state.is_connected() {
+                state = State::Disconnected;
+                scheduler.disconnected();
+            }
+            continue;
+        }
+        state = State::Connected;
+
+        let event = e.unwrap();
+
         match event.get_field_type() {
             Event_Type::SUBSCRIBED => {
                 let subscribed = event.get_subscribed();

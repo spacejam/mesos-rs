@@ -13,7 +13,7 @@ use proto::scheduler::{Call, Call_Accept, Call_Acknowledge, Call_Decline,
                        Call_Reconcile_Task, Call_Request, Call_Shutdown,
                        Call_Subscribe, Call_Type};
 use proto::mesos::{AgentID, ExecutorID, Filters, FrameworkID, FrameworkInfo,
-                   OfferID, Operation, Request, TaskID};
+                   OfferID, Operation, Request, TaskID, TaskInfo};
 use util;
 
 #[derive(Clone)]
@@ -24,9 +24,17 @@ pub struct SchedulerClient {
 
 impl SchedulerClient {
     pub fn subscribe(&self,
-                     framework_info: FrameworkInfo,
+                     mut framework_info: FrameworkInfo,
                      force: Option<bool>)
                      -> hyper::Result<Response> {
+        {
+            let framework_id = self.framework_id.lock().unwrap();
+            if framework_id.is_some() {
+                let framework_id_clone = framework_id.clone();
+                framework_info.set_id(framework_id_clone.unwrap());
+            }
+        }
+
         let mut subscribe = Call_Subscribe::new();
         subscribe.set_framework_info(framework_info);
 
@@ -42,6 +50,15 @@ impl SchedulerClient {
         call.set_field_type(Call_Type::TEARDOWN);
 
         self.post(&mut call)
+    }
+
+    pub fn launch(&self,
+                  offer_ids: Vec<OfferID>,
+                  tasks: Vec<TaskInfo>,
+                  filters: Option<Filters>)
+                  -> hyper::Result<Response> {
+        let operation = util::launch_operation(tasks);
+        self.accept(offer_ids, vec![operation], filters)
     }
 
     pub fn accept(&self,
