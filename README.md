@@ -10,7 +10,7 @@ Roadmap:
 #### Running
 ```
 [dependencies]
-mesos = "0.2.5"
+mesos = "0.2.6"
 ```
 
 ```rust
