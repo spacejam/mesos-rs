@@ -1,6 +1,6 @@
 use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
 use mesos::proto::*;
-use mesos::util::{task_info};
+use mesos::util;
 
 struct TestScheduler {
     max_id: u64,
@@ -19,16 +19,50 @@ impl Scheduler for TestScheduler {
                   framework_id: &FrameworkID,
                   heartbeat_interval_seconds: Option<f64>) {
         println!("received subscribed");
+
+        client.reconcile(vec![]);
+    }
+
+    // Inverse offers are only available with the HTTP API
+    // and are great for doing things like triggering
+    // replication with stateful services before the agent
+    // goes down for maintenance.
+    fn inverse_offers(&mut self,
+                      client: &SchedulerClient,
+                      inverse_offers: Vec<&InverseOffer>) {
+        println!("received inverse offers");
+
+        // this never lets go willingly
+        let offer_ids = inverse_offers.iter()
+                                      .map(|o| o.get_id().clone())
+                                      .collect();
+        client.decline(offer_ids, None);
     }
 
     fn offers(&mut self, client: &SchedulerClient, offers: Vec<&Offer>) {
-        println!("received offers");
+        // Offers are guaranteed to be for the same agent, and
+        // there will be at least one.
+        let agent_id = offers[0].get_agent_id();
+        println!("received {} offers from agent {}",
+                 offers.len(),
+                 agent_id.get_value());
+
+        let offer_ids: Vec<OfferID> = offers.iter()
+                                            .map(|o| o.get_id().clone())
+                                            .collect();
+        // get resources with whatever filters you need
+        let mut offer_cpus: f64 = offers.iter()
+                                        .flat_map(|o| o.get_resources())
+                                        .filter(|r| r.get_name() == "cpus")
+                                        .map(|c| c.get_scalar())
+                                        .fold(0f64, |acc, cpu_res| {
+                                            acc + cpu_res.get_value()
+                                        });
+        // or use this if you don't require special filtering
+        let mut offer_mem = util::get_scalar_resource_sum("mem", offers);
 
         let mut tasks = vec![];
-        let mut offer_ids = vec![];
-        for offer in offers {
-            offer_ids.push(offer.get_id().clone());
-
+        while offer_cpus >= 1f64 && offer_mem >= 128f64 {
             let name = format!("sleepy-{}", self.get_id());
 
             let mut task_id = TaskID::new();
@@ -37,50 +71,21 @@ impl Scheduler for TestScheduler {
             let mut command = CommandInfo::new();
             command.set_value("env && sleep 10".to_string());
 
-            let mut mem_scalar = Value_Scalar::new();
-            mem_scalar.set_value(128f64);
-
-            let mut mem = Resource::new();
-            mem.set_name("mem".to_string());
-            mem.set_role("*".to_string());
-            mem.set_field_type(Value_Type::SCALAR);
-            mem.set_scalar(mem_scalar);
-
-            let mut cpus_scalar = Value_Scalar::new();
-            cpus_scalar.set_value(1f64);
-
-            let mut cpus = Resource::new();
-            cpus.set_name("cpus".to_string());
-            cpus.set_role("*".to_string());
-            cpus.set_field_type(Value_Type::SCALAR);
-            cpus.set_scalar(cpus_scalar);
+            let mem = util::scalar("mem", "*", 128f64);
+            let cpus = util::scalar("cpus", "*", 1f64);
 
             let resources = vec![mem, cpus];
 
-            let task_info = task_info(name,
-                                      &task_id,
-                                      offer.get_agent_id(),
-                                      &command,
-                                      resources);
-
+            let task_info = util::task_info(name,
+                                            &task_id,
+                                            agent_id,
+                                            &command,
+                                            resources);
             tasks.push(task_info);
+            offer_cpus -= 1f64;
+            offer_mem -= 128f64;
         }
-
-        client.reconcile(vec![]);
-
         client.launch(offer_ids, tasks, None);
-    }
-
-    fn inverse_offers(&mut self,
-                      client: &SchedulerClient,
-                      inverse_offers: Vec<&InverseOffer>) {
-        println!("received inverse offers");
-
-        client.decline(inverse_offers.iter()
-                                     .map(|io| io.get_id().clone())
-                                     .collect(),
-                       None)
-              .unwrap();
     }
 
     fn rescind(&mut self, client: &SchedulerClient, offer_id: &OfferID) {

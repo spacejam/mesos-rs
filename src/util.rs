@@ -57,3 +57,23 @@ pub fn launch_operation(task_infos: Vec<TaskInfo>) -> Operation {
     operation.set_launch(launch);
     operation
 }
+
+pub fn scalar(name: &'static str, role: &'static str, value: f64) -> Resource {
+    let mut scalar = Value_Scalar::new();
+    scalar.set_value(value);
+
+    let mut res = Resource::new();
+    res.set_name(name.to_string());
+    res.set_role(role.to_string());
+    res.set_field_type(Value_Type::SCALAR);
+    res.set_scalar(scalar);
+    res
+}
+
+pub fn get_scalar_resource_sum(name: &'static str, offers: Vec<&Offer>) -> f64 {
+    offers.iter()
+          .flat_map(|o| o.get_resources())
+          .filter(|r| r.get_name() == "mem")
+          .map(|c| c.get_scalar())
+          .fold(0f64, |acc, mem_res| acc + mem_res.get_value())
+}

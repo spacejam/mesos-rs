@@ -88,8 +88,10 @@ pub fn run_protobuf_scheduler(master_url: String,
         match event.get_field_type() {
             Event_Type::SUBSCRIBED => {
                 let subscribed = event.get_subscribed();
-                let mut framework_id = client.framework_id.lock().unwrap();
-                *framework_id = Some(subscribed.get_framework_id().clone());
+                {
+                    let mut framework_id = client.framework_id.lock().unwrap();
+                    *framework_id = Some(subscribed.get_framework_id().clone());
+                }
 
                 let heartbeat_interval_seconds =
                     if !subscribed.has_heartbeat_interval_seconds() {

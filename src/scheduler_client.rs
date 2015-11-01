@@ -23,16 +23,18 @@ pub struct SchedulerClient {
 }
 
 impl SchedulerClient {
+    pub fn get_framework_id(&self) -> Option<FrameworkID> {
+        let id = self.framework_id.lock().unwrap().clone();
+        id
+    }
+
     pub fn subscribe(&self,
                      mut framework_info: FrameworkInfo,
                      force: Option<bool>)
                      -> hyper::Result<Response> {
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                framework_info.set_id(framework_id_clone.unwrap());
-            }
+        match self.get_framework_id() {
+            Some(fwid) => framework_info.set_id(fwid),
+            _ => (),
         }
 
         let mut subscribe = Call_Subscribe::new();
@@ -217,12 +219,9 @@ impl SchedulerClient {
     }
 
     fn post(&self, call: &mut Call) -> hyper::Result<Response> {
-        {
-            let framework_id = self.framework_id.lock().unwrap();
-            if framework_id.is_some() {
-                let framework_id_clone = framework_id.clone();
-                call.set_framework_id(framework_id_clone.unwrap());
-            }
+        match self.get_framework_id() {
+            Some(fwid) => call.set_framework_id(fwid),
+            _ => (),
         }
 
         let client = Client::new();
