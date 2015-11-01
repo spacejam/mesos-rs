@@ -21,26 +21,38 @@ pub fn protobuf_headers() -> Headers {
     headers
 }
 
-pub fn framework_info(user: String,
-                      name: String,
-                      failover_timeout: f64)
-                      -> FrameworkInfo {
+pub fn framework_id<'a>(id: &'a str) -> FrameworkID {
+    let mut framework_id = FrameworkID::new();
+    framework_id.set_value(id.to_string());
+    framework_id
+}
+
+pub fn framework_info<'a>(user: &'a str,
+                          name: &'a str,
+                          failover_timeout: f64)
+                          -> FrameworkInfo {
     let mut framework_info = FrameworkInfo::new();
-    framework_info.set_user(user);
-    framework_info.set_name(name);
+    framework_info.set_user(user.to_string());
+    framework_info.set_name(name.to_string());
     framework_info.set_failover_timeout(failover_timeout);
     framework_info
 }
 
-pub fn task_info(name: String,
-                 task_id: &TaskID,
-                 agent_id: &AgentID,
-                 command: &CommandInfo,
-                 resources: Vec<Resource>)
-                 -> TaskInfo {
+pub fn task_id<'a>(id: &'a str) -> TaskID {
+    let mut task_id = TaskID::new();
+    task_id.set_value(id.to_string());
+    task_id
+}
+
+pub fn task_info<'a>(name: &'a str,
+                     task_id: &TaskID,
+                     agent_id: &AgentID,
+                     command: &CommandInfo,
+                     resources: Vec<Resource>)
+                     -> TaskInfo {
 
     let mut task_info = TaskInfo::new();
-    task_info.set_name(name);
+    task_info.set_name(name.to_string());
     task_info.set_task_id(task_id.clone());
     task_info.set_agent_id(agent_id.clone());
     task_info.set_command(command.clone());
@@ -58,7 +70,7 @@ pub fn launch_operation(task_infos: Vec<TaskInfo>) -> Operation {
     operation
 }
 
-pub fn scalar(name: &'static str, role: &'static str, value: f64) -> Resource {
+pub fn scalar<'a>(name: &'a str, role: &'a str, value: f64) -> Resource {
     let mut scalar = Value_Scalar::new();
     scalar.set_value(value);
 
@@ -70,7 +82,7 @@ pub fn scalar(name: &'static str, role: &'static str, value: f64) -> Resource {
     res
 }
 
-pub fn get_scalar_resource_sum(name: &'static str, offers: Vec<&Offer>) -> f64 {
+pub fn get_scalar_resource_sum<'a>(name: &'a str, offers: Vec<&Offer>) -> f64 {
     offers.iter()
           .flat_map(|o| o.get_resources())
           .filter(|r| r.get_name() == "mem")

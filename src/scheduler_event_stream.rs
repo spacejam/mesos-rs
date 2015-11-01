@@ -31,19 +31,12 @@ pub fn run_protobuf_scheduler(master_url: String,
                               name: String,
                               framework_timeout: f64,
                               scheduler: &mut Scheduler,
-                              framework_id: Option<String>) {
+                              framework_id: Option<FrameworkID>,
+                              implicit_acknowledgements: bool) {
 
-    let mesos_framework_id =
-        framework_id.map(|framework_id| {
-            let mut proto_framework_id = FrameworkID::new();
-            proto_framework_id.set_value(framework_id);
-            proto_framework_id
-        });
-
-    let client = SchedulerClient {
-        url: master_url + "/api/v1/scheduler",
-        framework_id: Arc::new(Mutex::new(None)),
-    };
+    let client = SchedulerClient::new(master_url.to_string() +
+                                      "/api/v1/scheduler",
+                                      framework_id);
     let client_clone = client.clone();
 
     let (tx, rx) = channel();
@@ -52,9 +45,7 @@ pub fn run_protobuf_scheduler(master_url: String,
         loop {
             let mut codec = RecordIOCodec::new(tx.clone());
             let framework_info =
-                util::framework_info(user.clone(),
-                                     name.clone(),
-                                     framework_timeout.clone());
+                util::framework_info(&*user, &*name, framework_timeout.clone());
             match client_clone.subscribe(framework_info, None) {
                 Err(e) => {
                     tx.clone()
@@ -125,8 +116,15 @@ pub fn run_protobuf_scheduler(master_url: String,
             }
             Event_Type::RESCIND =>
                 scheduler.rescind(&client, event.get_rescind().get_offer_id()),
-            Event_Type::UPDATE =>
-                scheduler.update(&client, event.get_update().get_status()),
+            Event_Type::UPDATE => {
+                let status = event.get_update().get_status();
+                scheduler.update(&client, status);
+                if implicit_acknowledgements {
+                    client.acknowledge(status.get_agent_id().clone(),
+                                       status.get_task_id().clone(),
+                                       status.get_uuid().to_vec());
+                }
+            }
             Event_Type::MESSAGE => {
                 let message = event.get_message();
                 scheduler.message(&client,

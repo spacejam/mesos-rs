@@ -23,6 +23,15 @@ pub struct SchedulerClient {
 }
 
 impl SchedulerClient {
+    pub fn new(url: String,
+               framework_id: Option<FrameworkID>)
+               -> SchedulerClient {
+        SchedulerClient {
+            url: url + "/api/v1/scheduler",
+            framework_id: Arc::new(Mutex::new(framework_id)),
+        }
+    }
+
     pub fn get_framework_id(&self) -> Option<FrameworkID> {
         let id = self.framework_id.lock().unwrap().clone();
         id
