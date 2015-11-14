@@ -1,6 +1,9 @@
 # mesos-rs :globe_with_meridians:
 
-Simple bindings for the Mesos v1 HTTP API.
+Simple bindings for the Mesos v1 HTTP API.  The default trait of SchedulerRouter
+routes to a traditional mesos callback interface, but you are free to provide your
+own router implementation for working with other coding styles if you prefer.
+Flexibility is the primary concern with this library.
 
 Roadmap:
 - [x] scheduler
@@ -10,7 +13,7 @@ Roadmap:
 #### Running
 ```
 [dependencies]
-mesos = "0.2.8"
+mesos = "0.2.9"
 ```
 
 ###### Scheduler
@@ -18,7 +21,8 @@ mesos = "0.2.8"
 ```rust
 extern crate mesos;
 
-use self::mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
+use self::mesos::{Scheduler, SchedulerClient, SchedulerConf,
+            ProtobufCallbackRouter, run_protobuf_scheduler};
 use self::mesos::proto::*;
 use self::mesos::util;
 
@@ -151,20 +155,25 @@ impl Scheduler for TestScheduler {
 }
 
 fn main() {
-    let url = "http://localhost:5050".to_string();
-    let user = "root".to_string();
-    let name = "rust http".to_string();
-    let framework_timeout = 0f64;
-    let framework_id = None;
     let mut scheduler = TestScheduler { max_id: 0 };
-    let implicit_acknowledgements = true;
 
-    run_protobuf_scheduler(url,
-                           user,
-                           name,
-                           framework_timeout,
-                           &mut scheduler,
-                           framework_id,
-                           implicit_acknowledgements);
+    let conf = SchedulerConf {
+        master_url: "http://localhost:5050".to_string(),
+        user: "root".to_string(),
+        name: "rust http".to_string(),
+        framework_timeout: 0f64,
+        implicit_acknowledgements: true,
+        framework_id: None,
+    };
+
+    // If you don't like the callback approach, you can implement
+    // an event router of your own.  This is merely provided for
+    // those familiar with the mesos libraries in other languages.
+    let mut router = ProtobufCallbackRouter {
+        scheduler: &mut scheduler,
+        conf: conf.clone(),
+    };
+
+    run_protobuf_scheduler(&mut router, conf)
 }
 ```

@@ -27,3 +27,13 @@ pub trait Scheduler {
     }
     fn disconnected(&mut self);
 }
+
+#[derive(Clone)]
+pub struct SchedulerConf {
+    pub master_url: String,
+    pub user: String,
+    pub name: String,
+    pub framework_timeout: f64,
+    pub implicit_acknowledgements: bool,
+    pub framework_id: Option<FrameworkID>,
+}

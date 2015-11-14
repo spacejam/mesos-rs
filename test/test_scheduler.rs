@@ -1,4 +1,5 @@
-use mesos::{Scheduler, SchedulerClient, run_protobuf_scheduler};
+use mesos::{Scheduler, SchedulerClient, SchedulerConf,
+            ProtobufCallbackRouter, run_protobuf_scheduler};
 use mesos::proto::*;
 use mesos::util;
 
@@ -132,19 +133,24 @@ impl Scheduler for TestScheduler {
 
 #[test]
 fn main() {
-    let url = "http://localhost:5050".to_string();
-    let user = "root".to_string();
-    let name = "rust http".to_string();
-    let framework_timeout = 0f64;
-    let framework_id = None;
     let mut scheduler = TestScheduler { max_id: 0 };
-    let implicit_acknowledgements = true;
 
-    run_protobuf_scheduler(url,
-                           user,
-                           name,
-                           framework_timeout,
-                           &mut scheduler,
-                           framework_id,
-                           implicit_acknowledgements);
+    let conf = SchedulerConf {
+        master_url: "http://localhost:5050".to_string(),
+        user: "root".to_string(),
+        name: "rust http".to_string(),
+        framework_timeout: 0f64,
+        implicit_acknowledgements: true,
+        framework_id: None,
+    };
+
+    // If you don't like the callback approach, you can implement
+    // an event router of your own.  This is merely provided for
+    // those familiar with the mesos libraries in other languages.
+    let mut router = ProtobufCallbackRouter {
+        scheduler: &mut scheduler,
+        conf: conf.clone(),
+    };
+
+    run_protobuf_scheduler(&mut router, conf)
 }
