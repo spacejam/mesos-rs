@@ -82,6 +82,26 @@ pub fn scalar<'a>(name: &'a str, role: &'a str, value: f64) -> Resource {
     res
 }
 
+pub fn range<'a>(name: &'a str, role: &'a str, ranges: Vec<(u64, u64)>) -> Resource {
+    let mut values = vec![];
+    for (begin, end) in ranges {
+        let mut value = Value_Range::new();
+        value.set_begin(begin);
+        value.set_end(end);
+        values.push(value);
+    }
+
+    let mut ranges = Value_Ranges::new();
+    ranges.set_range(protobuf::RepeatedField::from_vec(values));
+
+    let mut res = Resource::new();
+    res.set_name(name.to_string());
+    res.set_role(role.to_string());
+    res.set_field_type(Value_Type::RANGES);
+    res.set_ranges(ranges);
+    res
+}
+
 pub fn get_scalar_resource_sum<'a>(name: &'a str, offers: Vec<&Offer>) -> f64 {
     offers.iter()
           .flat_map(|o| o.get_resources())

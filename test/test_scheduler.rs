@@ -1,3 +1,8 @@
+extern crate rand;
+extern crate protobuf;
+
+use std::thread;
+
 use mesos::{Scheduler, SchedulerClient, SchedulerConf,
             ProtobufCallbackRouter, run_protobuf_scheduler};
 use mesos::proto::*;
@@ -63,31 +68,96 @@ impl Scheduler for TestScheduler {
                                             acc + cpu_res.get_value()
                                         });
 
+        let mut offer_ports: Vec<(u64, u64)> = offers.iter()
+                                        .flat_map(|o| o.get_resources())
+                                        .filter(|r| r.get_name() == "ports")
+                                        .map(|p| p.get_ranges())
+                                        .fold(vec![], |mut acc, ports_res| {
+                                            for range in ports_res.get_range() {
+                                                acc.push((range.get_begin(), range.get_end()));
+                                            }
+                                            acc
+                                        });
+
         // or use this if you don't require special filtering
         let mut offer_mem = util::get_scalar_resource_sum("mem", offers);
 
         let mut tasks = vec![];
-        while offer_cpus >= 1f64 && offer_mem >= 128f64 {
+        while offer_cpus >= 1f64 && offer_mem >= 128f64 && offer_ports.len() != 0 {
             let name = &*format!("sleepy-{}", self.get_id());
 
             let task_id = util::task_id(name);
 
             let mut command = CommandInfo::new();
-            command.set_value("env && sleep 10".to_string());
+            command.set_value("env && while true; do echo yo $PORT0 | nc -vl $PORT0; done".to_string());
+
+            let mut label = Label::new();
+            if rand::random::<bool>() {
+                label.set_key("vip_PORT0A".to_string());
+            } else if rand::random::<bool>() {
+                label.set_key("vip_PORT2".to_string());
+            } else {
+                label.set_key("vip_PORT0".to_string());
+            }
+            label.set_value("tcp://1.2.3.4:5".to_string());
+
+            let mut labels = Labels::new();
+            labels.set_labels(protobuf::RepeatedField::from_vec(vec![label]));
 
             let mem = util::scalar("mem", "*", 128f64);
             let cpus = util::scalar("cpus", "*", 1f64);
 
-            let resources = vec![mem, cpus];
+            let mut port_ranges = vec![];
 
-            let task_info = util::task_info(name,
+            for i in 0..2 {
+                if offer_ports.len() == 0 {
+                    break;
+                }
+                let port_range = offer_ports.pop().unwrap();
+                if port_range.0 + 2 <= port_range.1 {
+                    offer_ports.push((port_range.0 + 2, port_range.1));
+                }
+                port_ranges.push((port_range.0, port_range.0));
+
+                let mut env_var = Environment_Variable::new();
+                env_var.set_name("PORT0".to_string());
+                env_var.set_value(format!("{}", port_range.0));
+
+                let mut env = Environment::new();
+                env.set_variables(protobuf::RepeatedField::from_vec(vec![env_var]));
+                command.set_environment(env);
+            }
+            println!("{:?}", port_ranges);
+
+            let ports = util::range("ports", "*", port_ranges);
+
+            let resources = vec![mem, cpus, ports];
+
+            let mut task_info = util::task_info(name,
                                             &task_id,
                                             agent_id,
                                             &command,
                                             resources);
+
+            task_info.set_labels(labels);
+
+            let mut health_command = CommandInfo::new();
+            health_command.set_value("false".to_string());
+
+            let mut health_check = HealthCheck::new();
+            health_check.set_command(health_command);
+            health_check.set_delay_seconds(0f64);
+            health_check.set_interval_seconds(1f64);
+            health_check.set_timeout_seconds(1f64);
+            health_check.set_consecutive_failures(10);
+            health_check.set_grace_period_seconds(1f64);
+
+            task_info.set_health_check(health_check);
+
             tasks.push(task_info);
             offer_cpus -= 1f64;
             offer_mem -= 128f64;
+            thread::sleep_ms(1000);
         }
         client.launch(offer_ids, tasks, None);
     }

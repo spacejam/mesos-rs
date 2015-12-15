@@ -16,4 +16,11 @@ pub trait Executor {
     fn message(&self, client: &ExecutorClient, data: Vec<u8>);
     fn shutdown(&self, client: &ExecutorClient);
     fn error(&self, client: &ExecutorClient, message: String);
+    fn disconnected(&mut self);
+}
+
+#[derive(Clone)]
+pub struct ExecutorConf {
+    pub implicit_acknowledgements: bool,
+    pub executor_id: ExecutorID,
 }
