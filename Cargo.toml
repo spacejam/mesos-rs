@@ -13,6 +13,6 @@ name = "test"
 path = "test/test.rs"
 
 [dependencies]
-protobuf = "1.0.4"
-hyper = "0.6.15"
+protobuf = "1.0.10"
+hyper = "0.7.1"
 itertools = "0.4.3"
