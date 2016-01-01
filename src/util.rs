@@ -60,6 +60,23 @@ pub fn task_info<'a>(name: &'a str,
     task_info
 }
 
+pub fn task_info_for_container<'a>(name: &'a str,
+                                   task_id: &TaskID,
+                                   agent_id: &AgentID,
+                                   command: &CommandInfo,
+                                   container: &ContainerInfo,
+                                   resources: Vec<Resource>)
+                                   -> TaskInfo {
+    let mut task_info = TaskInfo::new();
+    task_info.set_name(name.to_string());
+    task_info.set_task_id(task_id.clone());
+    task_info.set_agent_id(agent_id.clone());
+    task_info.set_command(command.clone());
+    task_info.set_container(container.clone());
+    task_info.set_resources(protobuf::RepeatedField::from_vec(resources));
+    task_info
+}
+
 pub fn launch_operation(task_infos: Vec<TaskInfo>) -> Operation {
     let mut launch = Operation_Launch::new();
     launch.set_task_infos(protobuf::RepeatedField::from_vec(task_infos));
