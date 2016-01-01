@@ -89,17 +89,27 @@ impl Scheduler for TestScheduler {
             let task_id = util::task_id(name);
 
             let mut command = CommandInfo::new();
-            command.set_value("env && while true; do echo yo $PORT0 | nc -vl $PORT0; done".to_string());
+            command.set_value("env && /tmp/srv".to_string());
+            if rand::random::<bool>() {
+                // good command
+            } else {
+               // command.set_value("env && sleep 9000".to_string());
+            }
 
             let mut label = Label::new();
-            if rand::random::<bool>() {
-                label.set_key("vip_PORT0A".to_string());
-            } else if rand::random::<bool>() {
-                label.set_key("vip_PORT2".to_string());
-            } else {
+            if true { // rand::random::<bool>() {
                 label.set_key("vip_PORT0".to_string());
+            } else if rand::random::<bool>() {
+                label.set_key("vip_PORT0A".to_string());
+            } else {
+                label.set_key("vip_PORT2".to_string());
             }
-            label.set_value("tcp://1.2.3.4:5".to_string());
+            if true { //rand::random::<bool>() {
+                label.set_value("tcp://1.2.3.4:5".to_string());
+            } else {
+                // bug
+                label.set_value("1.2.3.4:5".to_string());
+            }
 
             let mut labels = Labels::new();
             labels.set_labels(protobuf::RepeatedField::from_vec(vec![label]));
@@ -125,7 +135,9 @@ impl Scheduler for TestScheduler {
 
                 let mut env = Environment::new();
                 env.set_variables(protobuf::RepeatedField::from_vec(vec![env_var]));
-                command.set_environment(env);
+                if !command.has_environment() {
+                    command.set_environment(env);
+                }
             }
             println!("{:?}", port_ranges);
 
@@ -142,7 +154,7 @@ impl Scheduler for TestScheduler {
             task_info.set_labels(labels);
 
             let mut health_command = CommandInfo::new();
-            health_command.set_value("false".to_string());
+            health_command.set_value("true".to_string());
 
             let mut health_check = HealthCheck::new();
             health_check.set_command(health_command);
