@@ -13,7 +13,7 @@ Roadmap:
 #### Running
 ```
 [dependencies]
-mesos = "0.2.9"
+mesos = "0.2.10"
 ```
 
 ###### Scheduler
